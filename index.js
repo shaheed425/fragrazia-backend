@@ -95,6 +95,15 @@ const healthHandler = (req, res) => {
   });
 };
 
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "Fragranzia Backend API",
+    uptimeSeconds: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/api/health", healthHandler);
 app.get("/healthz", healthHandler);
 
@@ -147,7 +156,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const MONGO_CONNECTION_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
 if (!MONGO_CONNECTION_URI) {
   console.error("FATAL: MONGODB_URI / MONGO_URI is not defined in environment variables.");
