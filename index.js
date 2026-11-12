@@ -4,6 +4,14 @@ const path = require("path");
 const mongoose = require("mongoose");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
+// Explicitly register all Mongoose models early so populate never fails
+require("./models/userModel");
+require("./models/productModel");
+require("./models/categoryModel");
+require("./models/orderModel");
+require("./models/paymentModel");
+require("./models/addressModel");
+
 const product = require("./Routes/productRoutes");
 const category = require("./Routes/categoryRoutes");
 const userauth = require("./Routes/userRoute");
@@ -193,3 +201,5 @@ mongoose
     console.error("MongoDB connection error:", err);
     process.exit(1);
   });
+
+module.exports = app;

@@ -423,6 +423,10 @@ const returnOrder = async (req, res) => {
 const downloadOrderInvoice = async (req, res) => {
   try {
     const { id } = req.params;
+    require("../models/productModel");
+    require("../models/addressModel");
+    require("../models/userModel");
+
     const order = await Order.findById(id)
       .populate("orderItems.product")
       .populate("shippingAddress")
@@ -443,7 +447,7 @@ const downloadOrderInvoice = async (req, res) => {
     return res.send(pdfBuffer);
   } catch (error) {
     console.error("Invoice Download Error:", error);
-    return res.status(500).json({ message: "Failed to generate invoice" });
+    return res.status(500).json({ message: "Failed to generate invoice", error: error.message });
   }
 };
 
