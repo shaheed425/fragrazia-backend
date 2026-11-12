@@ -131,7 +131,13 @@ const ensureDbConnected = async (req, res, next) => {
 app.use(ensureDbConnected);
 
 app.use("/api", userauth);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    maxAge: "7d",
+    immutable: true,
+  })
+);
 app.use("/api/product", product);
 app.use("/api/category", category);
 app.use("/api", order);

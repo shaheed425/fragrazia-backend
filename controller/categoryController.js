@@ -5,7 +5,8 @@ const Category = require("../models/categoryModel");
 // ==============================
 const getallcategory = async (req, res) => {
   try {
-    const result = await Category.find();
+    const result = await Category.find().lean();
+    res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
     res.status(200).json({ data: result, message: "fetched successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message || "internal server error" });

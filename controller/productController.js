@@ -64,8 +64,13 @@ const fetchproduct = async (req, res) => {
       sortOptions.createdAt = -1;
     }
 
-    const result = await Product.find(query).populate("category").sort(sortOptions);
+    const result = await Product.find(query)
+      .populate("category", "name")
+      .sort(sortOptions)
+      .lean();
 
+    // Cache responses on CDN Edge for instant sub-second delivery
+    res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     res.status(200).json({ data: result, message: "fetched successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message || "internal server error" });
@@ -147,12 +152,13 @@ const createProduct = async (req, res) => {
 const getSingleProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id).populate("category");
+    const product = await Product.findById(id).populate("category", "name").lean();
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     res.status(200).json({ data: product, message: "fetched successfully" });
   } catch (error) {
     if (error.name === "CastError") {

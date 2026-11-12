@@ -87,5 +87,9 @@ const  productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// export default mongoose.model("Product", productSchema);
-module.exports = mongoose.model("Product",productSchema) 
+// High performance query indexes
+productSchema.index({ isActive: 1, createdAt: -1 });
+productSchema.index({ category: 1, isActive: 1 });
+productSchema.index({ isFeatured: 1, isActive: 1 });
+
+module.exports = mongoose.model("Product", productSchema); 
