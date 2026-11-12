@@ -2,6 +2,13 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 
+// Statically trace standard fonts for Vercel Serverless / Lambda deployment
+try {
+  require("pdfkit/js/standard-fonts/Helvetica.cjs");
+  require("pdfkit/js/standard-fonts/HelveticaBold.cjs");
+  require("pdfkit/js/standard-fonts/chunks/standardGlyphNames-DNHAb7rp.cjs");
+} catch (_) {}
+
 /**
  * Generates an elegant, luxury A4 PDF invoice for an order.
  * Returns a Buffer containing the complete PDF binary.
