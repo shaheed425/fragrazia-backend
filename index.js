@@ -98,6 +98,29 @@ const healthHandler = (req, res) => {
 app.get("/api/health", healthHandler);
 app.get("/healthz", healthHandler);
 
+const MONGO_CONNECTION_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+let dbPromise = null;
+const ensureDbConnected = async (req, res, next) => {
+  if (mongoose.connection.readyState === 1) {
+    return next();
+  }
+  try {
+    if (!dbPromise) {
+      dbPromise = mongoose.connect(MONGO_CONNECTION_URI, {
+        serverSelectionTimeoutMS: 10_000,
+        socketTimeoutMS: 45_000,
+      });
+    }
+    await dbPromise;
+    next();
+  } catch (err) {
+    console.error("DB connection error in middleware:", err);
+    next();
+  }
+};
+app.use(ensureDbConnected);
+
 app.use("/api", userauth);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/product", product);
