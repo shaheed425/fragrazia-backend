@@ -131,6 +131,25 @@ const ensureDbConnected = async (req, res, next) => {
 app.use(ensureDbConnected);
 
 app.use("/api", userauth);
+// Serve static uploads with automatic WebP resolution fallback and 7-day edge cache
+app.get("/uploads/:filename", (req, res, next) => {
+  const uploadsDir = path.join(__dirname, "uploads");
+  const directPath = path.join(uploadsDir, req.params.filename);
+  if (fs.existsSync(directPath)) {
+    return next();
+  }
+  const ext = path.extname(req.params.filename);
+  if (ext && ext !== ".webp") {
+    const webpCandidate = path.join(uploadsDir, `${path.basename(req.params.filename, ext)}.webp`);
+    if (fs.existsSync(webpCandidate)) {
+      res.setHeader("Content-Type", "image/webp");
+      res.setHeader("Cache-Control", "public, max-age=604800, immutable");
+      return res.sendFile(webpCandidate);
+    }
+  }
+  next();
+});
+
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"), {
