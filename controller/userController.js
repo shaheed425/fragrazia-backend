@@ -279,10 +279,12 @@ const getCartMatchIndex = (cart, productId, reqSize, isPopulated = false) => {
 const adcart = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const [user, product] = await Promise.all([
+      User.findById(req.userId),
+      Product.findById(id).select("name brand price saleprice stock isActive sizes images").lean(),
+    ]);
 
-    const product = await Product.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
     if (!product) return res.status(404).json({ message: "Product not found" });
     if (product.isActive === false) {
       return res.status(400).json({ message: "Product is currently unavailable" });
@@ -315,8 +317,8 @@ const adcart = async (req, res) => {
     }
 
     await user.save();
-    const updatedUser = await User.findById(req.userId).populate("cart.product");
-    const cleanCart = updatedUser.cart.filter(item => item.product !== null);
+    await user.populate("cart.product");
+    const cleanCart = user.cart.filter((item) => item.product !== null);
     res.json({ message: "Product added", data: cleanCart });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -340,8 +342,8 @@ const deletecart = async (req, res) => {
     }
     await user.save();
 
-    const updatedUser = await User.findById(req.userId).populate("cart.product");
-    const cleanCart = updatedUser.cart.filter(item => item.product !== null);
+    await user.populate("cart.product");
+    const cleanCart = user.cart.filter((item) => item.product !== null);
 
     res.status(200).json({
       message: "Product removed from cart",
@@ -408,8 +410,8 @@ const decreaseQuantity = async (req, res) => {
       await user.save();
     }
 
-    const updatedUser = await User.findById(userId).populate("cart.product");
-    const cleanCart = updatedUser.cart.filter(i => i.product !== null);
+    await user.populate("cart.product");
+    const cleanCart = user.cart.filter((i) => i.product !== null);
 
     res.json(cleanCart);
   } catch (error) {
@@ -441,31 +443,30 @@ const adwishlist = async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const alreadyExist = user.wishlist.find(
+    const alreadyExist = user.wishlist.some(
       (item) => item.toString() === id
     );
 
     if (alreadyExist) {
       user.wishlist.pull(id);
       await user.save();
-      const updatedUser = await User.findById(req.userId).populate("wishlist");
+      await user.populate("wishlist");
       return res.json({
         message: "Product removed from wishlist",
-        data: updatedUser.wishlist.filter(Boolean)
+        data: user.wishlist.filter(Boolean)
       });
     }
 
-    const product = await Product.findById(id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    const productExists = await Product.exists({ _id: id });
+    if (!productExists) return res.status(404).json({ message: "Product not found" });
 
     user.wishlist.push(id);
     await user.save();
-
-    const updatedUser = await User.findById(req.userId).populate("wishlist");
+    await user.populate("wishlist");
 
     res.json({
       message: "Product added to wishlist",
-      data: updatedUser.wishlist.filter(Boolean)
+      data: user.wishlist.filter(Boolean)
     });
   } catch (error) {
     res.status(500).json({ message: "server error" });
