@@ -18,7 +18,8 @@ const {
         decreaseQuantity,
         editAddress,
         deleteAddress,
-        setDefaultAddress
+        setDefaultAddress,
+        adminResetUserPassword
 } = require("../controller/userController");
 
 const { checkAuth, isAdmin } = require("../middleware/checkAuth");
@@ -45,6 +46,7 @@ router.post("/user/verify-email", registerLimiter, verifyEmail);
 router.post("/user/resend-verification", registerLimiter, resendVerification);
 router.post("/user/login", loginLimiter, login);
 router.get("/user", checkAuth, isAdmin, fetchusers);
+router.put("/user/admin-reset-password", checkAuth, isAdmin, adminResetUserPassword);
 
 /* --------------------------------
         CART CONTROLLER

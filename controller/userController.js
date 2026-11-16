@@ -498,6 +498,34 @@ const fetchusers = async (req, res) => {
   }
 };
 
+const adminResetUserPassword = async (req, res) => {
+  try {
+    const { userId, newPassword } = req.body;
+    if (!userId || !newPassword || String(newPassword).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and a new password with at least 6 characters are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(String(newPassword), 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Password successfully updated for ${user.name}!`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || "Failed to update password" });
+  }
+};
+
 const addaddress = async (req, res) => {
   try {
     const userId = req.userId;
@@ -693,5 +721,6 @@ module.exports = {
   deleteAddress,
   increaseQuantity,
   decreaseQuantity,
-  setDefaultAddress
+  setDefaultAddress,
+  adminResetUserPassword
 };
