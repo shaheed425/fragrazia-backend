@@ -189,7 +189,14 @@ const sendOrderConfirmationEmail = async (orderIdOrDoc) => {
       })
       .join("\n");
 
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+    const backendUrl =
+      process.env.BACKEND_URL && !process.env.BACKEND_URL.includes("localhost")
+        ? process.env.BACKEND_URL.replace(/\/+$/, "")
+        : process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/+$/, "")
+        : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`.replace(/\/+$/, "")
+        : "https://fragrazia-backend.vercel.app";
     const invoicePdfUrl = `${backendUrl}/api/order/invoice/${claimed._id}`;
 
     const whatsappInvoiceMsg = [

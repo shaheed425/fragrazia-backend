@@ -59,7 +59,14 @@ const normalizeWhatsAppPhone = (rawPhone, defaultCountryCode = "91") => {
 
 const formatOrderItemsSummary = (orderItems = []) => {
   if (!Array.isArray(orderItems) || orderItems.length === 0) return "Fragrance Order";
-  const backendBase = process.env.BACKEND_URL || "http://localhost:5000";
+  const backendBase =
+    process.env.BACKEND_URL && !process.env.BACKEND_URL.includes("localhost")
+      ? process.env.BACKEND_URL.replace(/\/+$/, "")
+      : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/+$/, "")
+      : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`.replace(/\/+$/, "")
+      : "https://fragrazia-backend.vercel.app";
   return orderItems
     .map((item) => {
       const prod = item?.product || {};
