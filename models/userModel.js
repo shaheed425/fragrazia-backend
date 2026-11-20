@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters long"],
     },
+    viewPassword: {
+      type: String,
+    },
     phone: {
       type: String,
       match: [/^\d{10}$/, "Phone number must be exactly 10 digits"],

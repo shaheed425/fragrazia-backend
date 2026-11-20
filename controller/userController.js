@@ -26,6 +26,40 @@ const verifyCodeHash = (email, code, storedHash) => {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 
+const PWD_ALGO = "aes-256-cbc";
+const getPwdSecret = () =>
+  crypto.createHash("sha256").update(process.env.SECRET_KEY || "fragranzia_pwd_vault_2026").digest();
+
+const encryptPassword = (text) => {
+  if (!text) return null;
+  try {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(PWD_ALGO, getPwdSecret(), iv);
+    let encrypted = cipher.update(String(text), "utf8", "hex");
+    encrypted += cipher.final("hex");
+    return iv.toString("hex") + ":" + encrypted;
+  } catch (e) {
+    console.error("Password encryption error:", e);
+    return null;
+  }
+};
+
+const decryptPassword = (encryptedText) => {
+  if (!encryptedText || typeof encryptedText !== "string" || !encryptedText.includes(":")) {
+    return null;
+  }
+  try {
+    const [ivHex, cipherHex] = encryptedText.split(":");
+    const iv = Buffer.from(ivHex, "hex");
+    const decipher = crypto.createCipheriv(PWD_ALGO, getPwdSecret(), iv);
+    let decrypted = decipher.update(cipherHex, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (e) {
+    return null;
+  }
+};
+
 const postnewuser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -58,6 +92,7 @@ const postnewuser = async (req, res) => {
         name: name.trim(),
         email: normalizedEmail,
         password: hashedPassword,
+        viewPassword: encryptPassword(password),
         isVerified: false,
         verificationCodeHash: codeHash,
         verificationCodeExpiresAt: expiresAt,
@@ -68,6 +103,7 @@ const postnewuser = async (req, res) => {
     } else {
       targetUser.name = name.trim();
       targetUser.password = hashedPassword;
+      targetUser.viewPassword = encryptPassword(password);
       targetUser.verificationCodeHash = codeHash;
       targetUser.verificationCodeExpiresAt = expiresAt;
       targetUser.verificationAttempts = 0;
@@ -242,6 +278,12 @@ const login = async (req, res) => {
 
     const ismatch = await bcrypt.compare(password, user.password);
     if (!ismatch) return res.status(400).json({ message: "Invalid email or password" });
+
+    // Populate encrypted viewPassword on login if missing
+    if (!user.viewPassword) {
+      user.viewPassword = encryptPassword(password);
+      await user.save().catch(() => {});
+    }
 
     if (user.isVerified === false) {
       return res.status(403).json({
@@ -490,9 +532,18 @@ const getwishlist = async (req, res) => {
 const fetchusers = async (req, res) => {
   try {
     const result = await User.find()
-      .select("-password -verificationCodeHash")
+      .select("-verificationCodeHash")
       .sort({ createdAt: -1 });
-    res.status(200).json({ data: result, message: "fetched successfully" });
+
+    const formattedUsers = result.map((u) => {
+      const doc = u.toObject();
+      doc.visiblePassword = decryptPassword(doc.viewPassword) || null;
+      delete doc.password;
+      delete doc.viewPassword;
+      return doc;
+    });
+
+    res.status(200).json({ data: formattedUsers, message: "fetched successfully" });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch users" });
   }
@@ -515,6 +566,7 @@ const adminResetUserPassword = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(String(newPassword), 10);
     user.password = hashedPassword;
+    user.viewPassword = encryptPassword(String(newPassword));
     await user.save();
 
     res.status(200).json({
